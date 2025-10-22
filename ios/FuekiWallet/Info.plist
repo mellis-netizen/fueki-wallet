@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Fueki Wallet</string>
+	<string>$(APP_DISPLAY_NAME)</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,21 +15,14 @@
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
-	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
-	<true/>
-	<key>UIApplicationSceneManifest</key>
-	<dict>
-		<key>UIApplicationSupportsMultipleScenes</key>
-		<true/>
-		<key>UISceneConfigurations</key>
-		<dict/>
-	</dict>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
@@ -50,20 +43,29 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>UIUserInterfaceStyle</key>
-	<string>Automatic</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Fueki Wallet needs camera access to scan QR codes for wallet addresses and transaction information.</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>Fueki Wallet uses Face ID to securely authenticate transactions and access your wallet.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Fueki Wallet needs photo library access to save QR codes and transaction receipts.</string>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>Fueki Wallet requires network access to communicate with blockchain networks and verify transactions.</string>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>AntDesign.ttf</string>
+		<string>Entypo.ttf</string>
+		<string>EvilIcons.ttf</string>
+		<string>Feather.ttf</string>
+		<string>FontAwesome.ttf</string>
+		<string>FontAwesome5_Brands.ttf</string>
+		<string>FontAwesome5_Regular.ttf</string>
+		<string>FontAwesome5_Solid.ttf</string>
+		<string>Foundation.ttf</string>
+		<string>Ionicons.ttf</string>
+		<string>MaterialIcons.ttf</string>
+		<string>MaterialCommunityIcons.ttf</string>
+		<string>SimpleLineIcons.ttf</string>
+		<string>Octicons.ttf</string>
+		<string>Zocial.ttf</string>
+		<string>Fontisto.ttf</string>
+	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<false/>
 		<key>NSExceptionDomains</key>
 		<dict>
 			<key>localhost</key>
@@ -73,14 +75,35 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Fueki Wallet needs access to your camera to scan QR codes for wallet addresses and payment requests.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Fueki Wallet needs access to your photo library to select QR code images for scanning.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Fueki Wallet needs permission to save QR codes to your photo library.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Fueki Wallet uses Face ID to securely authenticate transactions and access your wallet.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Fueki Wallet uses your location to find nearby merchants and ATMs (optional).</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIBackgroundModes</key>
 	<array>
-		<string>fetch</string>
 		<string>remote-notification</string>
 	</array>
-	<key>LSApplicationCategoryType</key>
-	<string>public.app-category.finance</string>
+	<key>UIRequiresPersistentWiFi</key>
+	<false/>
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleDefault</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>This identifier will be used to deliver personalized ads to you.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>mailto</string>
+		<string>bitcoin</string>
+		<string>ethereum</string>
+		<string>https</string>
+	</array>
 </dict>
 </plist>

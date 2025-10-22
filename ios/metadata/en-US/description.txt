@@ -1,0 +1,74 @@
+Fueki Mobile Wallet - Your Secure Digital Wallet
+
+Fueki Mobile Wallet is a secure, fast, and user-friendly mobile cryptocurrency wallet that puts you in complete control of your digital assets.
+
+KEY FEATURES:
+
+🔒 SECURITY FIRST
+- Advanced encryption and secure key storage
+- Biometric authentication (Face ID / Touch ID)
+- Hardware security module integration
+- Multi-signature support for enhanced security
+
+💼 MULTI-CURRENCY SUPPORT
+- Support for major cryptocurrencies
+- Real-time exchange rates and portfolio tracking
+- Cross-chain transactions
+- Token management
+
+⚡ FAST & RELIABLE
+- Instant transaction processing
+- Low transaction fees
+- Real-time notifications
+- Offline transaction signing
+
+📊 PORTFOLIO MANAGEMENT
+- Comprehensive portfolio overview
+- Transaction history and analytics
+- Price alerts and notifications
+- Multi-wallet management
+
+🌐 DECENTRALIZED & NON-CUSTODIAL
+- Full control of your private keys
+- No central authority
+- Open-source and auditable
+- Privacy-focused design
+
+💱 BUILT-IN EXCHANGE
+- Swap cryptocurrencies instantly
+- Best exchange rates
+- No hidden fees
+- Quick and easy conversion
+
+🎯 USER-FRIENDLY INTERFACE
+- Intuitive design
+- Simple onboarding process
+- Easy backup and recovery
+- Multi-language support
+
+SECURITY FEATURES:
+- Secure enclave key storage
+- Encrypted local storage
+- PIN and biometric protection
+- Transaction confirmation system
+- Automatic logout and app lock
+
+WHY CHOOSE FUEKI?
+- 100% non-custodial - you own your keys
+- Regular security audits
+- Open-source codebase
+- Active community support
+- Continuous updates and improvements
+
+PRIVACY POLICY:
+We respect your privacy. Fueki Wallet does not collect, store, or share your personal information or transaction data. All data is stored locally on your device and encrypted.
+
+SUPPORT:
+Need help? Visit our support center or contact us at support@fueki.com
+
+Follow us:
+Twitter: @FuekiWallet
+GitHub: github.com/fueki
+Website: fueki.com
+
+Download Fueki Mobile Wallet today and take control of your digital assets!

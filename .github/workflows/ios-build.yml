@@ -1,0 +1,348 @@
+name: iOS Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      deploy:
+        description: 'Deploy to TestFlight/App Store'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  XCODE_VERSION: '15.2'
+  IOS_SIMULATOR: 'iPhone 15 Pro'
+
+jobs:
+  # ===========================
+  # CODE QUALITY CHECKS
+  # ===========================
+
+  lint:
+    name: Lint Code
+    runs-on: macos-14
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: ios
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Run SwiftLint
+        run: swiftlint lint --reporter github-actions-logging
+        working-directory: ios
+
+  # ===========================
+  # UNIT & UI TESTS
+  # ===========================
+
+  test:
+    name: Run Tests
+    runs-on: macos-14
+    needs: lint
+    strategy:
+      matrix:
+        scheme: ['FuekiWallet']
+        destination: ['platform=iOS Simulator,name=iPhone 15 Pro,OS=17.2']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: ios
+
+      - name: Install dependencies
+        run: |
+          cd ios
+          bundle install
+          pod install
+
+      - name: Run unit tests
+        run: |
+          cd ios
+          bundle exec fastlane test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ios/test_output/
+          retention-days: 7
+
+      - name: Generate code coverage
+        if: success()
+        run: |
+          cd ios
+          bundle exec fastlane test_coverage
+
+      - name: Upload coverage to Codecov
+        if: success()
+        uses: codecov/codecov-action@v4
+        with:
+          files: ios/coverage/cobertura.xml
+          flags: ios
+          name: ios-coverage
+
+  # ===========================
+  # BUILD APP
+  # ===========================
+
+  build:
+    name: Build App
+    runs-on: macos-14
+    needs: test
+    strategy:
+      matrix:
+        environment: [development, staging, production]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: ios
+
+      - name: Install dependencies
+        run: |
+          cd ios
+          bundle install
+          pod install
+
+      - name: Setup code signing
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+        run: |
+          cd ios
+          chmod +x scripts/setup_signing.sh
+          ./scripts/setup_signing.sh
+
+      - name: Increment build number
+        run: |
+          cd ios
+          chmod +x scripts/increment_build.sh
+          CI_BUILD_NUMBER=${{ github.run_number }} ./scripts/increment_build.sh
+
+      - name: Build app
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}
+        run: |
+          cd ios
+          case "${{ matrix.environment }}" in
+            development)
+              bundle exec fastlane build_dev
+              ;;
+            staging)
+              bundle exec fastlane build_staging
+              ;;
+            production)
+              bundle exec fastlane build_production
+              ;;
+          esac
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FuekiWallet-${{ matrix.environment }}-${{ github.run_number }}
+          path: ios/build/${{ matrix.environment }}/*.ipa
+          retention-days: 30
+
+      - name: Upload dSYM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FuekiWallet-${{ matrix.environment }}-dSYM-${{ github.run_number }}
+          path: ios/build/${{ matrix.environment }}/**/*.dSYM.zip
+          retention-days: 90
+
+  # ===========================
+  # DEPLOY TO TESTFLIGHT
+  # ===========================
+
+  deploy_testflight:
+    name: Deploy to TestFlight
+    runs-on: macos-14
+    needs: build
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: testflight
+      url: https://appstoreconnect.apple.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: ios
+
+      - name: Download IPA artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: FuekiWallet-staging-${{ github.run_number }}
+          path: ios/build/staging/
+
+      - name: Generate release notes
+        run: |
+          cd ios
+          chmod +x scripts/release_notes.sh
+          ./scripts/release_notes.sh
+
+      - name: Deploy to TestFlight
+        env:
+          FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+          ITC_TEAM_ID: ${{ secrets.ITC_TEAM_ID }}
+        run: |
+          cd ios
+          bundle exec fastlane deploy_testflight external:false notify:true
+
+      - name: Notify Slack
+        if: success()
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "🚀 New TestFlight build deployed!",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*TestFlight Deployment Successful*\n\n*Build:* ${{ github.run_number }}\n*Branch:* ${{ github.ref_name }}\n*Commit:* ${{ github.sha }}"
+                  }
+                }
+              ]
+            }
+
+  # ===========================
+  # DEPLOY TO APP STORE
+  # ===========================
+
+  deploy_appstore:
+    name: Deploy to App Store
+    runs-on: macos-14
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: production
+      url: https://apps.apple.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: ios
+
+      - name: Download IPA artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: FuekiWallet-production-${{ github.run_number }}
+          path: ios/build/production/
+
+      - name: Generate release notes
+        run: |
+          cd ios
+          chmod +x scripts/release_notes.sh
+          ./scripts/release_notes.sh
+
+      - name: Deploy to App Store
+        env:
+          FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+          ITC_TEAM_ID: ${{ secrets.ITC_TEAM_ID }}
+        run: |
+          cd ios
+          bundle exec fastlane deploy_appstore submit:false
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ios/build/production/*.ipa
+            ios/fastlane/metadata/en-US/release_notes.txt
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+      - name: Notify Slack
+        if: success()
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "🎉 New production build uploaded to App Store!",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*App Store Deployment Successful*\n\n*Version:* ${{ github.ref_name }}\n*Build:* ${{ github.run_number }}\n*Commit:* ${{ github.sha }}"
+                  }
+                }
+              ]
+            }
