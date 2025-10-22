@@ -1,0 +1,246 @@
+name: iOS Tests
+
+on:
+  push:
+    branches: [main, develop, feature/*]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_15.2.app/Contents/Developer
+
+jobs:
+  unit-tests:
+    name: Unit Tests - ${{ matrix.device }}
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        device:
+          - "iPhone 15 Pro Max"
+          - "iPhone 15 Pro"
+          - "iPhone 14"
+          - "iPhone SE (3rd generation)"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.2'
+
+      - name: List available simulators
+        run: xcrun simctl list devices available
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install dependencies
+        run: |
+          cd ios
+          pod install --repo-update
+
+      - name: Run unit tests
+        env:
+          DEVICE: ${{ matrix.device }}
+        run: |
+          cd ios
+          xcodebuild test \
+            -workspace Fueki.xcworkspace \
+            -scheme Fueki \
+            -destination "platform=iOS Simulator,name=${{ matrix.device }}" \
+            -enableCodeCoverage YES \
+            -derivedDataPath DerivedData \
+            -resultBundlePath TestResults \
+            | xcpretty --color --report html --output fastlane/test_output/report.html
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results-${{ matrix.device }}
+          path: |
+            ios/fastlane/test_output/
+            ios/TestResults/
+          retention-days: 7
+
+  ui-tests:
+    name: UI Tests - ${{ matrix.device }}
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        device:
+          - "iPhone 15 Pro"
+          - "iPad Pro (12.9-inch) (6th generation)"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.2'
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install dependencies
+        run: |
+          cd ios
+          pod install --repo-update
+
+      - name: Run UI tests
+        env:
+          DEVICE: ${{ matrix.device }}
+        run: |
+          cd ios
+          xcodebuild test \
+            -workspace Fueki.xcworkspace \
+            -scheme FuekiUITests \
+            -destination "platform=iOS Simulator,name=${{ matrix.device }}" \
+            -derivedDataPath DerivedData \
+            -resultBundlePath UITestResults \
+            | xcpretty --color --report html --output fastlane/test_output/ui-report.html
+
+      - name: Upload UI test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-results-${{ matrix.device }}
+          path: |
+            ios/fastlane/test_output/
+            ios/UITestResults/
+          retention-days: 7
+
+  code-coverage:
+    name: Code Coverage Analysis
+    runs-on: macos-14
+    needs: [unit-tests]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: unit-test-results-*
+          merge-multiple: true
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.2'
+
+      - name: Generate coverage report
+        run: bash ios/scripts/code-coverage.sh
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./ios/fastlane/test_output/coverage.xml
+          flags: ios,unit-tests
+          name: ios-unit-coverage
+          fail_ci_if_error: true
+
+      - name: Coverage summary
+        run: |
+          echo "## Code Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "Coverage reports generated and uploaded to Codecov" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ios/fastlane/test_output/coverage.*
+          retention-days: 30
+
+  performance-tests:
+    name: Performance Tests
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.2'
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install dependencies
+        run: |
+          cd ios
+          pod install --repo-update
+
+      - name: Run performance tests
+        run: |
+          cd ios
+          xcodebuild test \
+            -workspace Fueki.xcworkspace \
+            -scheme Fueki \
+            -destination "platform=iOS Simulator,name=iPhone 15 Pro" \
+            -only-testing:FuekiTests/PerformanceTests \
+            -derivedDataPath DerivedData \
+            -resultBundlePath PerformanceResults \
+            | xcpretty --color
+
+      - name: Upload performance results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-test-results
+          path: ios/PerformanceResults/
+          retention-days: 30
+
+  test-summary:
+    name: Test Summary
+    runs-on: macos-14
+    needs: [unit-tests, ui-tests, code-coverage]
+    if: always()
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Generate test summary
+        run: |
+          echo "# Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Results" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Unit Tests: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ UI Tests: ${{ needs.ui-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Code Coverage: ${{ needs.code-coverage.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "All test results and coverage reports have been uploaded as artifacts." >> $GITHUB_STEP_SUMMARY

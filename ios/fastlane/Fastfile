@@ -1,0 +1,287 @@
+# Fastfile for Fueki Wallet iOS
+# Production-grade CI/CD automation
+
+default_platform(:ios)
+
+platform :ios do
+
+  # Environment Variables
+  before_all do
+    ENV["FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT"] = "120"
+    ENV["FASTLANE_XCODE_LIST_TIMEOUT"] = "120"
+  end
+
+  desc "Run all unit and UI tests"
+  lane :test do
+    scan(
+      scheme: "Fueki",
+      devices: ["iPhone 15 Pro"],
+      clean: true,
+      code_coverage: true,
+      output_directory: "./fastlane/test_output",
+      output_types: "html,junit",
+      result_bundle: true,
+      fail_build: true
+    )
+
+    # Post test analysis
+    sh("../scripts/code-coverage.sh")
+  end
+
+  desc "Run SwiftLint for code quality"
+  lane :lint do
+    swiftlint(
+      mode: :lint,
+      executable: "Pods/SwiftLint/swiftlint",
+      config_file: ".swiftlint.yml",
+      strict: true,
+      ignore_exit_status: false,
+      raise_if_swiftlint_error: true,
+      reporter: "html",
+      output_file: "fastlane/swiftlint-report.html"
+    )
+  end
+
+  desc "Build app for testing"
+  lane :build do
+    clear_derived_data
+
+    cocoapods(
+      clean_install: true,
+      podfile: "./ios/Podfile"
+    )
+
+    gym(
+      scheme: "Fueki",
+      configuration: "Debug",
+      clean: true,
+      export_method: "development",
+      output_directory: "./fastlane/build_output",
+      output_name: "Fueki-Debug.ipa",
+      include_bitcode: false,
+      include_symbols: true,
+      export_options: {
+        compileBitcode: false,
+        uploadBitcode: false,
+        uploadSymbols: true
+      }
+    )
+  end
+
+  desc "Build for TestFlight beta distribution"
+  lane :beta do
+    # Ensure clean state
+    clear_derived_data
+
+    # Update build number
+    increment_build_number(
+      build_number: latest_testflight_build_number + 1,
+      xcodeproj: "./ios/Fueki.xcodeproj"
+    )
+
+    # Sync code signing
+    match(
+      type: "appstore",
+      readonly: true,
+      app_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+    )
+
+    # Build for App Store
+    gym(
+      scheme: "Fueki",
+      configuration: "Release",
+      clean: true,
+      export_method: "app-store",
+      output_directory: "./fastlane/build_output",
+      output_name: "Fueki-Release.ipa",
+      include_bitcode: true,
+      include_symbols: true,
+      export_options: {
+        compileBitcode: true,
+        uploadBitcode: true,
+        uploadSymbols: true,
+        provisioningProfiles: {
+          CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier) => "match AppStore " + CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+        }
+      }
+    )
+
+    # Upload to TestFlight
+    pilot(
+      skip_waiting_for_build_processing: false,
+      skip_submission: true,
+      distribute_external: false,
+      changelog: "Bug fixes and performance improvements",
+      groups: ["Internal Testers"],
+      notify_external_testers: false
+    )
+
+    # Notify team
+    slack(
+      message: "New Fueki Wallet beta build uploaded to TestFlight!",
+      success: true,
+      default_payloads: [:git_branch, :git_author, :last_git_commit_message]
+    )
+  end
+
+  desc "Deploy to App Store"
+  lane :release do
+    # Ensure clean state
+    clear_derived_data
+
+    # Version bump (manual control)
+    # increment_version_number(
+    #   version_number: "1.0.0"
+    # )
+
+    # Update build number
+    increment_build_number(
+      build_number: latest_testflight_build_number + 1,
+      xcodeproj: "./ios/Fueki.xcodeproj"
+    )
+
+    # Sync code signing
+    match(
+      type: "appstore",
+      readonly: true,
+      app_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+    )
+
+    # Build for App Store
+    gym(
+      scheme: "Fueki",
+      configuration: "Release",
+      clean: true,
+      export_method: "app-store",
+      output_directory: "./fastlane/build_output",
+      output_name: "Fueki-AppStore.ipa",
+      include_bitcode: true,
+      include_symbols: true
+    )
+
+    # Upload to App Store Connect
+    deliver(
+      submit_for_review: false,
+      automatic_release: false,
+      force: true,
+      skip_metadata: false,
+      skip_screenshots: false,
+      precheck_include_in_app_purchases: false
+    )
+
+    # Create Git tag
+    add_git_tag(
+      tag: "v#{get_version_number}(#{get_build_number})",
+      message: "Release version #{get_version_number} build #{get_build_number}"
+    )
+
+    # Notify team
+    slack(
+      message: "Fueki Wallet v#{get_version_number} uploaded to App Store!",
+      success: true,
+      default_payloads: [:git_branch, :git_author, :last_git_commit_message]
+    )
+  end
+
+  desc "Generate App Store screenshots"
+  lane :screenshots do
+    capture_screenshots(
+      scheme: "FuekiUITests",
+      devices: [
+        "iPhone 15 Pro Max",
+        "iPhone 15 Pro",
+        "iPhone SE (3rd generation)",
+        "iPad Pro (12.9-inch) (6th generation)"
+      ],
+      languages: ["en-US"],
+      output_directory: "./fastlane/screenshots",
+      clear_previous_screenshots: true,
+      override_status_bar: true,
+      number_of_retries: 3
+    )
+
+    # Frame screenshots
+    frame_screenshots(
+      white: false,
+      path: "./fastlane/screenshots"
+    )
+  end
+
+  desc "Setup code signing with match"
+  lane :match_setup do |options|
+    type = options[:type] || "development"
+
+    match(
+      type: type,
+      readonly: false,
+      force_for_new_devices: true,
+      app_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+    )
+  end
+
+  desc "Sync code signing certificates"
+  lane :sync_certs do
+    match(type: "development", readonly: true)
+    match(type: "adhoc", readonly: true)
+    match(type: "appstore", readonly: true)
+  end
+
+  desc "Register new device"
+  lane :register_device do |options|
+    device_name = options[:name]
+    device_udid = options[:udid]
+
+    register_devices(
+      devices: {
+        device_name => device_udid
+      }
+    )
+
+    match(type: "development", force_for_new_devices: true)
+  end
+
+  desc "Run static analysis"
+  lane :analyze do
+    scan(
+      scheme: "Fueki",
+      derived_data_path: "./DerivedData",
+      clean: true,
+      analyzer_build_only: true,
+      skip_testing: true
+    )
+  end
+
+  desc "Full CI pipeline"
+  lane :ci do
+    lint
+    test
+    build
+  end
+
+  desc "Full release pipeline"
+  lane :release_pipeline do
+    lint
+    test
+    beta
+  end
+
+  # Error handling
+  error do |lane, exception, options|
+    slack(
+      message: "❌ Lane #{lane} failed: #{exception.message}",
+      success: false,
+      payload: {
+        "Build Date" => Time.new.to_s,
+        "Error" => exception.message
+      }
+    )
+  end
+
+  after_all do |lane|
+    notification(
+      subtitle: "Fastlane finished",
+      message: "Lane #{lane} completed successfully"
+    )
+  end
+
+end

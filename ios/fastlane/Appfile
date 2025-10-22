@@ -1,0 +1,12 @@
+# App identifier configuration for Fueki Wallet
+
+# Apple Developer account
+app_identifier("com.fueki.wallet") # The bundle identifier of your app
+apple_id("developer@fueki.io") # Your Apple Developer Portal email address
+
+# App Store Connect / Apple Developer Portal
+itc_team_id("TEAM_ID") # App Store Connect Team ID
+team_id("TEAM_ID") # Developer Portal Team ID
+
+# For more information about the Appfile, see:
+# https://docs.fastlane.tools/advanced/#appfile

@@ -1,0 +1,210 @@
+name: iOS CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_15.2.app/Contents/Developer
+
+jobs:
+  lint:
+    name: SwiftLint
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache SwiftLint
+        uses: actions/cache@v4
+        with:
+          path: .build/swiftlint
+          key: ${{ runner.os }}-swiftlint-${{ hashFiles('.swiftlint.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-swiftlint-
+
+      - name: Install SwiftLint
+        run: |
+          if ! command -v swiftlint &> /dev/null; then
+            brew install swiftlint
+          fi
+
+      - name: Run SwiftLint
+        run: bash ios/scripts/lint.sh
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swiftlint-report
+          path: ios/fastlane/swiftlint-report.html
+          retention-days: 7
+
+  test:
+    name: Unit & UI Tests
+    runs-on: macos-14
+    needs: lint
+
+    strategy:
+      matrix:
+        device:
+          - "iPhone 15 Pro"
+          - "iPhone SE (3rd generation)"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.2'
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Cache SPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/*/SourcePackages
+            ~/Library/Caches/org.swift.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('ios/*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Install dependencies
+        run: |
+          cd ios
+          pod install --repo-update
+
+      - name: Install fastlane
+        run: |
+          gem install bundler
+          bundle install
+
+      - name: Run tests
+        env:
+          DEVICE: ${{ matrix.device }}
+        run: bash ios/scripts/test.sh
+
+      - name: Generate code coverage report
+        run: bash ios/scripts/code-coverage.sh
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./ios/fastlane/test_output/coverage.xml
+          flags: ios
+          name: ios-coverage
+          fail_ci_if_error: false
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.device }}
+          path: |
+            ios/fastlane/test_output/
+            ios/fastlane/logs/
+          retention-days: 7
+
+      - name: Check code coverage threshold
+        run: |
+          COVERAGE=$(grep -o 'lineCoverage="[0-9.]*"' ios/fastlane/test_output/coverage.xml | head -1 | sed 's/lineCoverage="//;s/"//')
+          THRESHOLD=0.80
+          if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+            echo "❌ Code coverage $COVERAGE is below threshold $THRESHOLD"
+            exit 1
+          fi
+          echo "✅ Code coverage $COVERAGE meets threshold $THRESHOLD"
+
+  build:
+    name: Build App
+    runs-on: macos-14
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.2'
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install dependencies
+        run: |
+          cd ios
+          pod install --repo-update
+
+      - name: Install fastlane
+        run: |
+          gem install bundler
+          bundle install
+
+      - name: Setup code signing
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          FASTLANE_USER: ${{ secrets.FASTLANE_USER }}
+          FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
+        run: |
+          bundle exec fastlane ios sync_certs
+
+      - name: Build app
+        run: bash ios/scripts/build.sh
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: |
+            ios/fastlane/build_output/
+            ios/DerivedData/
+          retention-days: 7
+
+  quality-gates:
+    name: Quality Gates
+    runs-on: macos-14
+    needs: [lint, test, build]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-results-*
+          merge-multiple: true
+
+      - name: Quality gate summary
+        run: |
+          echo "## Quality Gates Summary" >> $GITHUB_STEP_SUMMARY
+          echo "✅ SwiftLint: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Unit Tests: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Code Coverage: ≥80%" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Build: Successful" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,70 @@
+# Uncomment the next line to define a global platform for your project
+platform :ios, '15.0'
+
+# Inhibit all warnings from CocoaPods dependencies
+inhibit_all_warnings!
+
+target 'FuekiWallet' do
+  # Comment the next line if you don't want to use dynamic frameworks
+  use_frameworks!
+
+  # Pods for FuekiWallet
+
+  # Security & Cryptography
+  pod 'CryptoSwift', '~> 1.8'
+  pod 'Alamofire', '~> 5.8'
+
+  # Blockchain & Web3
+  pod 'web3swift', '~> 3.1'
+
+  # Keychain & Secure Storage
+  pod 'KeychainSwift', '~> 20.0'
+
+  # QR Code Scanning
+  pod 'SwiftQRScanner', '~> 2.0'
+
+  # UI Components
+  pod 'SkeletonView', '~> 1.30'
+  pod 'Lottie', '~> 4.3'
+
+  # Reactive Programming
+  # Combine is built-in to iOS 13+, no pod needed
+
+  # Analytics & Monitoring (optional)
+  # pod 'Firebase/Analytics'
+  # pod 'Firebase/Crashlytics'
+
+  target 'FuekiWalletTests' do
+    inherit! :search_paths
+    # Pods for testing
+    pod 'Quick', '~> 7.3'
+    pod 'Nimble', '~> 13.0'
+  end
+
+  target 'FuekiWalletUITests' do
+    # Pods for testing
+  end
+
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      config.build_settings['ENABLE_BITCODE'] = 'NO'
+
+      # Enable hardened runtime for security
+      config.build_settings['ENABLE_HARDENED_RUNTIME'] = 'YES'
+
+      # Swift compilation mode
+      config.build_settings['SWIFT_COMPILATION_MODE'] = 'wholemodule'
+
+      # Optimization level
+      if config.name == 'Debug'
+        config.build_settings['SWIFT_OPTIMIZATION_LEVEL'] = '-Onone'
+      else
+        config.build_settings['SWIFT_OPTIMIZATION_LEVEL'] = '-O'
+      end
+    end
+  end
+end
