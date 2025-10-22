@@ -1,0 +1,343 @@
+# Fastfile for Fueki Mobile Wallet
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Run all tests"
+  lane :test do
+    run_tests(
+      scheme: "FuekiWallet",
+      devices: ["iPhone 15"],
+      code_coverage: true
+    )
+  end
+
+  desc "Build for TestFlight"
+  lane :beta do
+    # Increment build number
+    increment_build_number(
+      build_number: latest_testflight_build_number + 1
+    )
+
+    # Match certificates and profiles
+    match(
+      type: "appstore",
+      readonly: true
+    )
+
+    # Build app
+    build_app(
+      scheme: "FuekiWallet",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          "com.fueki.wallet" => "match AppStore com.fueki.wallet"
+        }
+      }
+    )
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      skip_submission: false,
+      skip_waiting_for_build_processing: false,
+      changelog: "New build with latest improvements and bug fixes"
+    )
+
+    # Clean build artifacts
+    clean_build_artifacts
+  end
+
+  desc "Build for App Store release"
+  lane :release do
+    # Ensure we're on main branch
+    ensure_git_branch(branch: "main")
+    ensure_git_status_clean
+
+    # Increment version
+    version_number = prompt(text: "Enter version number (e.g., 1.0.0): ")
+    increment_version_number(version_number: version_number)
+
+    # Increment build number
+    increment_build_number(
+      build_number: latest_testflight_build_number + 1
+    )
+
+    # Match certificates and profiles
+    match(
+      type: "appstore",
+      readonly: true
+    )
+
+    # Build app
+    build_app(
+      scheme: "FuekiWallet",
+      export_method: "app-store",
+      output_directory: "./build",
+      output_name: "FuekiWallet.ipa"
+    )
+
+    # Upload to App Store Connect
+    upload_to_app_store(
+      force: true,
+      submit_for_review: false,
+      automatic_release: false,
+      skip_metadata: false,
+      skip_screenshots: false,
+      precheck_include_in_app_purchases: false
+    )
+
+    # Create Git tag
+    add_git_tag(
+      tag: "v#{version_number}",
+      message: "Release version #{version_number}"
+    )
+    push_git_tags
+
+    # Clean build artifacts
+    clean_build_artifacts
+
+    # Success notification
+    notification(
+      title: "Release Complete",
+      message: "Version #{version_number} uploaded to App Store Connect"
+    )
+  end
+
+  desc "Register devices"
+  lane :register_devices do
+    register_devices(
+      devices_file: "./fastlane/devices.txt"
+    )
+  end
+
+  desc "Sync certificates and profiles"
+  lane :sync_certificates do
+    match(type: "development")
+    match(type: "appstore")
+  end
+
+  desc "Run SwiftLint"
+  lane :lint do
+    swiftlint(
+      mode: :lint,
+      config_file: ".swiftlint.yml",
+      strict: true,
+      raise_if_swiftlint_error: true
+    )
+  end
+
+  desc "Run security scan"
+  lane :security_scan do
+    sh("bash ../scripts/ci/security-scan.sh")
+  end
+
+  desc "Generate screenshots"
+  lane :screenshots do
+    capture_screenshots(
+      scheme: "FuekiWallet",
+      devices: [
+        "iPhone 15 Pro Max",
+        "iPhone 15",
+        "iPad Pro (12.9-inch) (6th generation)"
+      ],
+      languages: ["en-US"],
+      clear_previous_screenshots: true
+    )
+  end
+
+  desc "Increment build number"
+  lane :bump_build do
+    increment_build_number(
+      build_number: latest_testflight_build_number + 1
+    )
+  end
+
+  desc "Increment version (patch)"
+  lane :bump_version do |options|
+    bump_type = options[:type] || "patch"
+    increment_version_number(bump_type: bump_type)
+  end
+
+  desc "Create release branch"
+  lane :create_release_branch do |options|
+    version = options[:version]
+    sh("git checkout -b release/#{version}")
+    sh("git push -u origin release/#{version}")
+  end
+
+  desc "Archive and export IPA"
+  lane :archive do
+    build_app(
+      scheme: "FuekiWallet",
+      export_method: "app-store",
+      output_directory: "./build",
+      output_name: "FuekiWallet.ipa",
+      include_bitcode: false,
+      export_options: {
+        provisioningProfiles: {
+          "com.fueki.wallet" => "match AppStore com.fueki.wallet"
+        }
+      }
+    )
+  end
+
+  desc "Upload dSYMs to crash reporting"
+  lane :upload_symbols do
+    # Upload to Sentry, Firebase, or other crash reporting services
+    # Uncomment and configure as needed:
+    # upload_symbols_to_sentry(
+    #   auth_token: ENV['SENTRY_AUTH_TOKEN'],
+    #   org_slug: 'fueki',
+    #   project_slug: 'mobile-wallet'
+    # )
+  end
+
+  desc "Run all pre-release checks"
+  lane :pre_release do
+    lint
+    test
+    security_scan
+  end
+
+  desc "Deploy to specific TestFlight group"
+  lane :beta_group do |options|
+    group = options[:group] || "Internal"
+
+    build_app(
+      scheme: "FuekiWallet",
+      export_method: "app-store"
+    )
+
+    upload_to_testflight(
+      groups: [group],
+      skip_waiting_for_build_processing: false,
+      changelog: options[:changelog] || "Bug fixes and improvements"
+    )
+  end
+
+  desc "Notify team of release"
+  lane :notify_release do |options|
+    version = options[:version]
+    slack(
+      message: "Version #{version} has been released!",
+      success: true
+    ) if ENV['SLACK_URL']
+  end
+
+  # Error handling
+  error do |lane, exception|
+    notification(
+      title: "Fastlane Error",
+      message: "#{lane} failed: #{exception.message}"
+    )
+
+    # Send to Slack if configured
+    slack(
+      message: "Fastlane #{lane} failed: #{exception.message}",
+      success: false
+    ) if ENV['SLACK_URL']
+  end
+end
+
+# Android platform
+platform :android do
+  desc "Run Android tests"
+  lane :test do
+    gradle(
+      task: "test",
+      project_dir: "android/"
+    )
+  end
+
+  desc "Build debug APK"
+  lane :build_debug do
+    gradle(
+      task: "assemble",
+      build_type: "Debug",
+      project_dir: "android/"
+    )
+  end
+
+  desc "Build release AAB"
+  lane :build_release do
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: "android/"
+    )
+  end
+
+  desc "Deploy to Play Store internal track"
+  lane :internal do
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: "android/"
+    )
+
+    upload_to_play_store(
+      track: "internal",
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+
+  desc "Deploy to Play Store alpha track"
+  lane :alpha do
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: "android/"
+    )
+
+    upload_to_play_store(
+      track: "alpha",
+      skip_upload_apk: true
+    )
+  end
+
+  desc "Deploy to Play Store beta track"
+  lane :beta do
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: "android/"
+    )
+
+    upload_to_play_store(
+      track: "beta",
+      skip_upload_apk: true
+    )
+  end
+
+  desc "Deploy to Play Store production"
+  lane :production do
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: "android/"
+    )
+
+    upload_to_play_store(
+      track: "production",
+      skip_upload_apk: true,
+      rollout: "0.1"  # 10% rollout
+    )
+  end
+
+  desc "Promote release to higher track"
+  lane :promote do |options|
+    from_track = options[:from] || "beta"
+    to_track = options[:to] || "production"
+
+    upload_to_play_store(
+      track: to_track,
+      track_promote_to: to_track,
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_metadata: true
+    )
+  end
+end

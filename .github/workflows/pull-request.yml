@@ -1,0 +1,342 @@
+name: Pull Request CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened]
+
+env:
+  XCODE_VERSION: '15.0'
+  SWIFT_VERSION: '5.9'
+
+jobs:
+  code-quality:
+    name: Code Quality Checks
+    runs-on: macos-13
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Cache SwiftLint
+        uses: actions/cache@v4
+        with:
+          path: ~/.swiftlint-cache
+          key: ${{ runner.os }}-swiftlint-${{ hashFiles('**/*.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-swiftlint-
+
+      - name: Install SwiftLint
+        run: |
+          brew install swiftlint || brew upgrade swiftlint
+          swiftlint version
+
+      - name: Run SwiftLint
+        run: |
+          swiftlint lint --reporter github-actions-logging --strict
+          swiftlint lint --reporter html > scripts/ci/swiftlint-report.html || true
+
+      - name: Upload SwiftLint Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swiftlint-report
+          path: scripts/ci/swiftlint-report.html
+          retention-days: 30
+
+  security-scan:
+    name: Security Scanning
+    runs-on: macos-13
+    timeout-minutes: 20
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Run SAST with Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/swift
+            p/security-audit
+            p/secrets
+          generateSarif: true
+
+      - name: Upload SARIF file
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+
+      - name: Dependency Security Check
+        run: |
+          # Check for known vulnerabilities in dependencies
+          bash scripts/ci/security-scan.sh
+
+      - name: Secrets Detection
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: macos-13
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Cache Swift Packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData
+            ~/Library/Caches/org.swift.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Build and Test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -scheme FuekiWallet \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
+            -enableCodeCoverage YES \
+            -resultBundlePath ./TestResults.xcresult \
+            | xcpretty --report html --output scripts/ci/test-report.html
+        env:
+          NSUnbufferedIO: YES
+
+      - name: Generate Code Coverage
+        run: |
+          xcrun xccov view --report --json ./TestResults.xcresult > scripts/ci/coverage.json
+          bash scripts/ci/generate-coverage-report.sh
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            TestResults.xcresult
+            scripts/ci/test-report.html
+            scripts/ci/coverage.json
+          retention-days: 30
+
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: scripts/ci/coverage.json
+          flags: unittests
+          name: fueki-wallet-coverage
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Comment Test Results on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const coverage = JSON.parse(fs.readFileSync('scripts/ci/coverage.json', 'utf8'));
+            const body = `## Test Results
+
+            ✅ Unit Tests Completed
+
+            ### Code Coverage
+            - **Line Coverage**: ${coverage.lineCoverage}%
+            - **Branch Coverage**: ${coverage.branchCoverage || 'N/A'}%
+
+            [View Detailed Report](../actions/runs/${{ github.run_id }})
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: macos-13
+    timeout-minutes: 30
+    needs: [unit-tests]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Cache Swift Packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData
+            ~/Library/Caches/org.swift.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Run Integration Tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -scheme FuekiWallet \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
+            -testPlan IntegrationTests \
+            | xcpretty
+
+      - name: Upload Integration Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: TestResults.xcresult
+          retention-days: 30
+
+  ui-tests:
+    name: UI Tests
+    runs-on: macos-13
+    timeout-minutes: 45
+    needs: [unit-tests]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Start iOS Simulator
+        run: |
+          xcrun simctl boot "iPhone 15" || true
+          xcrun simctl bootstatus "iPhone 15"
+
+      - name: Run UI Tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -scheme FuekiWallet \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
+            -testPlan UITests \
+            -resultBundlePath ./UITestResults.xcresult \
+            | xcpretty
+
+      - name: Upload UI Test Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-screenshots
+          path: UITestResults.xcresult
+          retention-days: 30
+
+  build-validation:
+    name: Build Validation
+    runs-on: macos-13
+    timeout-minutes: 30
+    needs: [code-quality, security-scan]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Cache Swift Packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData
+            ~/Library/Caches/org.swift.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Build for Debug
+        run: |
+          xcodebuild build \
+            -scheme FuekiWallet \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
+            -configuration Debug \
+            | xcpretty
+
+      - name: Validate Archive Build
+        run: |
+          xcodebuild archive \
+            -scheme FuekiWallet \
+            -sdk iphoneos \
+            -archivePath ./build/FuekiWallet.xcarchive \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
+
+      - name: Upload Build Artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-archive
+          path: ./build/FuekiWallet.xcarchive
+          retention-days: 7
+
+  pr-checks-complete:
+    name: PR Checks Complete
+    runs-on: ubuntu-latest
+    needs: [code-quality, security-scan, unit-tests, integration-tests, ui-tests, build-validation]
+    if: always()
+
+    steps:
+      - name: Check All Jobs Status
+        run: |
+          if [ "${{ needs.code-quality.result }}" != "success" ] || \
+             [ "${{ needs.security-scan.result }}" != "success" ] || \
+             [ "${{ needs.unit-tests.result }}" != "success" ] || \
+             [ "${{ needs.integration-tests.result }}" != "success" ] || \
+             [ "${{ needs.ui-tests.result }}" != "success" ] || \
+             [ "${{ needs.build-validation.result }}" != "success" ]; then
+            echo "❌ One or more checks failed"
+            exit 1
+          else
+            echo "✅ All checks passed"
+          fi

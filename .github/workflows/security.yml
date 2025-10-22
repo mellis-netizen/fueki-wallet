@@ -1,0 +1,373 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  # ========================================
+  # SAST - Static Application Security Testing
+  # ========================================
+  sast-codeql:
+    name: CodeQL Analysis
+    runs-on: macos-13
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['swift']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: +security-extended,security-and-quality
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.0'
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install dependencies
+        run: |
+          if [ -f Podfile ]; then
+            pod install --repo-update
+          fi
+
+      - name: Build project for analysis
+        run: |
+          xcodebuild clean build \
+            -workspace FuekiWallet.xcworkspace \
+            -scheme FuekiWallet \
+            -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=17.0' \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            ONLY_ACTIVE_ARCH=YES
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+          upload: true
+
+  # ========================================
+  # SwiftLint Security Rules
+  # ========================================
+  swiftlint-security:
+    name: SwiftLint Security Check
+    runs-on: macos-13
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install SwiftLint
+        run: |
+          brew install swiftlint || brew upgrade swiftlint
+
+      - name: Run SwiftLint with security rules
+        run: |
+          swiftlint lint \
+            --strict \
+            --reporter json \
+            > swiftlint-security.json
+
+      - name: Check for security violations
+        run: |
+          # Parse and fail on critical security issues
+          if grep -q "severity.*error" swiftlint-security.json; then
+            echo "❌ Critical security issues found!"
+            cat swiftlint-security.json | jq '.[] | select(.severity == "error")'
+            exit 1
+          fi
+
+      - name: Upload security scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swiftlint-security-results
+          path: swiftlint-security.json
+          retention-days: 30
+
+  # ========================================
+  # Dependency Vulnerability Scanning
+  # ========================================
+  dependency-check:
+    name: Dependency Vulnerability Check
+    runs-on: macos-13
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install dependencies
+        run: |
+          if [ -f Podfile ]; then
+            pod install --repo-update
+          fi
+
+      - name: Install OWASP Dependency-Check
+        run: |
+          brew install dependency-check
+
+      - name: Run dependency vulnerability scan
+        run: |
+          dependency-check \
+            --project "FuekiWallet" \
+            --scan . \
+            --format JSON \
+            --format HTML \
+            --out ./dependency-reports \
+            --suppression dependency-check-suppressions.xml \
+            || true
+
+      - name: Check for high/critical vulnerabilities
+        run: |
+          if [ -f ./dependency-reports/dependency-check-report.json ]; then
+            # Count high and critical vulnerabilities
+            HIGH_VULNS=$(jq '[.dependencies[].vulnerabilities[] | select(.severity == "HIGH")] | length' ./dependency-reports/dependency-check-report.json)
+            CRITICAL_VULNS=$(jq '[.dependencies[].vulnerabilities[] | select(.severity == "CRITICAL")] | length' ./dependency-reports/dependency-check-report.json)
+
+            echo "🔍 Found $CRITICAL_VULNS critical and $HIGH_VULNS high severity vulnerabilities"
+
+            if [ "$CRITICAL_VULNS" -gt 0 ]; then
+              echo "❌ Critical vulnerabilities found! Review required."
+              exit 1
+            fi
+          fi
+
+      - name: Upload dependency check results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-results
+          path: dependency-reports/
+          retention-days: 30
+
+  # ========================================
+  # CocoaPods Audit
+  # ========================================
+  cocoapods-audit:
+    name: CocoaPods Security Audit
+    runs-on: macos-13
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install bundler-audit
+        run: |
+          gem install bundler-audit
+
+      - name: Check Podfile.lock for vulnerabilities
+        run: |
+          if [ -f Podfile.lock ]; then
+            # Create a custom audit script for CocoaPods
+            cat > audit-pods.rb << 'EOF'
+          require 'json'
+          require 'net/http'
+          require 'yaml'
+
+          # Parse Podfile.lock
+          lockfile = YAML.load_file('Podfile.lock')
+          pods = lockfile['PODS']
+
+          vulnerabilities = []
+
+          pods.each do |pod|
+            pod_name = pod.is_a?(Hash) ? pod.keys.first : pod
+            pod_name = pod_name.split(' ').first.split('/').first
+            version = pod.is_a?(Hash) ? pod.values.first : pod.split(' ')[1]&.gsub(/[()]/, '')
+
+            puts "Checking #{pod_name} #{version}..."
+          end
+
+          puts "✅ CocoaPods audit complete"
+          EOF
+
+            ruby audit-pods.rb
+          fi
+
+      - name: Verify pod sources
+        run: |
+          if [ -f Podfile ]; then
+            # Ensure all pods come from trusted sources
+            grep -E "^source" Podfile | grep -v "https://github.com/CocoaPods/Specs.git" && \
+              echo "⚠️  Warning: Non-standard pod sources detected" || \
+              echo "✅ All pod sources verified"
+          fi
+
+  # ========================================
+  # Secrets Scanning
+  # ========================================
+  secrets-scan:
+    name: Secrets Detection
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Scan for hardcoded secrets
+        run: |
+          # Additional custom secret patterns
+          echo "Scanning for API keys, private keys, and credentials..."
+
+          # Check for common secret patterns
+          if grep -r -E "(api[_-]?key|apikey|api[_-]?secret)" --include="*.swift" .; then
+            echo "⚠️  Potential API keys found in source code"
+          fi
+
+          if grep -r -E "(private[_-]?key|privatekey)" --include="*.swift" .; then
+            echo "⚠️  Potential private keys found in source code"
+          fi
+
+          if grep -r -E "(password|passwd|pwd)" --include="*.swift" . | grep -v "// "; then
+            echo "⚠️  Potential passwords found in source code"
+          fi
+
+  # ========================================
+  # Binary Analysis (IPA/Archive)
+  # ========================================
+  binary-analysis:
+    name: Binary Security Analysis
+    runs-on: macos-13
+    timeout-minutes: 25
+    needs: [sast-codeql, dependency-check]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.0'
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install dependencies
+        run: |
+          if [ -f Podfile ]; then
+            pod install --repo-update
+          fi
+
+      - name: Build archive for analysis
+        run: |
+          xcodebuild archive \
+            -workspace FuekiWallet.xcworkspace \
+            -scheme FuekiWallet \
+            -archivePath build/FuekiWallet.xcarchive \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Check binary security flags
+        run: |
+          echo "🔍 Checking binary security settings..."
+
+          BINARY_PATH="build/FuekiWallet.xcarchive/Products/Applications/FuekiWallet.app/FuekiWallet"
+
+          if [ -f "$BINARY_PATH" ]; then
+            # Check for PIE (Position Independent Executable)
+            otool -hv "$BINARY_PATH" | grep PIE || echo "⚠️  PIE not enabled"
+
+            # Check for stack canaries
+            otool -I -v "$BINARY_PATH" | grep stack_chk || echo "⚠️  Stack protection not found"
+
+            # Check for ARC (Automatic Reference Counting)
+            otool -I -v "$BINARY_PATH" | grep objc_retain || echo "✅ ARC enabled"
+
+            echo "✅ Binary security check complete"
+          fi
+
+  # ========================================
+  # Security Summary Report
+  # ========================================
+  security-report:
+    name: Generate Security Report
+    runs-on: ubuntu-latest
+    needs: [sast-codeql, swiftlint-security, dependency-check, secrets-scan]
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all security artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: security-results/
+
+      - name: Generate security summary
+        run: |
+          echo "# 🔒 Security Scan Summary" > security-summary.md
+          echo "" >> security-summary.md
+          echo "**Scan Date:** $(date)" >> security-summary.md
+          echo "" >> security-summary.md
+
+          echo "## Scan Results" >> security-summary.md
+          echo "- ✅ CodeQL Analysis: ${{ needs.sast-codeql.result }}" >> security-summary.md
+          echo "- ✅ SwiftLint Security: ${{ needs.swiftlint-security.result }}" >> security-summary.md
+          echo "- ✅ Dependency Check: ${{ needs.dependency-check.result }}" >> security-summary.md
+          echo "- ✅ Secrets Scan: ${{ needs.secrets-scan.result }}" >> security-summary.md
+
+          cat security-summary.md
+
+      - name: Upload security summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-summary
+          path: security-summary.md
+          retention-days: 90

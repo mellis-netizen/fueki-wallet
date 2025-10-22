@@ -1,0 +1,166 @@
+name: Version Bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      prerelease:
+        description: 'Prerelease identifier (e.g., beta, rc)'
+        required: false
+        type: string
+
+jobs:
+  bump-version:
+    name: Bump Version
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Get current version
+        id: current
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: Bump version
+        id: bump
+        run: |
+          BUMP_TYPE="${{ github.event.inputs.bump_type }}"
+          PRERELEASE="${{ github.event.inputs.prerelease }}"
+
+          if [ -n "$PRERELEASE" ]; then
+            npm version "pre$BUMP_TYPE" --preid="$PRERELEASE" --no-git-tag-version
+          else
+            npm version "$BUMP_TYPE" --no-git-tag-version
+          fi
+
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: Update iOS version
+        run: |
+          VERSION="${{ steps.bump.outputs.version }}"
+          BUILD_NUMBER=${{ github.run_number }}
+
+          # Update Info.plist if exists
+          if [ -f "ios/FuekiWallet/Info.plist" ]; then
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" ios/FuekiWallet/Info.plist || true
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" ios/FuekiWallet/Info.plist || true
+          fi
+
+      - name: Update Android version
+        run: |
+          VERSION="${{ steps.bump.outputs.version }}"
+          BUILD_NUMBER=${{ github.run_number }}
+
+          # Update build.gradle if exists
+          if [ -f "android/app/build.gradle" ]; then
+            sed -i "s/versionCode .*/versionCode $BUILD_NUMBER/" android/app/build.gradle
+            sed -i "s/versionName .*/versionName \"$VERSION\"/" android/app/build.gradle
+          fi
+
+      - name: Update version.txt
+        run: |
+          echo "${{ steps.bump.outputs.version }}" > version.txt
+
+      - name: Generate changelog entry
+        id: changelog
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          VERSION="${{ steps.bump.outputs.version }}"
+
+          if [ ! -f CHANGELOG.md ]; then
+            cat > CHANGELOG.md << EOF
+          # Changelog
+
+          All notable changes to this project will be documented in this file.
+
+          The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+          and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+          EOF
+          fi
+
+          # Add new version entry
+          sed -i "2i\\
+          ## [$VERSION] - $DATE\\
+          \\
+          ### Added\\
+          - New features and improvements\\
+          \\
+          ### Changed\\
+          - Updates and modifications\\
+          \\
+          ### Fixed\\
+          - Bug fixes\\
+          \\
+          " CHANGELOG.md
+
+      - name: Commit changes
+        run: |
+          git add .
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.version }}"
+          git push
+
+      - name: Create and push tag
+        run: |
+          VERSION="${{ steps.bump.outputs.version }}"
+          PRERELEASE="${{ github.event.inputs.prerelease }}"
+
+          if [ -n "$PRERELEASE" ]; then
+            TAG="v$VERSION"
+          else
+            TAG="v$VERSION"
+          fi
+
+          git tag -a "$TAG" -m "Release $VERSION"
+          git push origin "$TAG"
+
+      - name: Create release draft
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.bump.outputs.version }}
+          name: Release v${{ steps.bump.outputs.version }}
+          draft: true
+          prerelease: ${{ github.event.inputs.prerelease != '' }}
+          body: |
+            ## What's Changed
+
+            ### Added
+            - New features and improvements
+
+            ### Changed
+            - Updates and modifications
+
+            ### Fixed
+            - Bug fixes
+
+            **Full Changelog**: https://github.com/${{ github.repository }}/compare/v${{ steps.current.outputs.version }}...v${{ steps.bump.outputs.version }}

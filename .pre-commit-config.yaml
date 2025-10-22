@@ -1,0 +1,61 @@
+# Pre-commit hooks for Fueki Mobile Wallet
+# Install: pip install pre-commit
+# Setup: pre-commit install
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: \.md$
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: check-case-conflict
+
+  - repo: https://github.com/realm/SwiftLint
+    rev: 0.54.0
+    hooks:
+      - id: swiftlint
+        args: ['--strict', '--config', '.swiftlint.yml']
+
+  - repo: local
+    hooks:
+      - id: security-scan
+        name: Security Scan
+        entry: bash scripts/ci/security-scan.sh
+        language: system
+        pass_filenames: false
+        always_run: false
+        stages: [commit]
+
+      - id: swift-format
+        name: Swift Format
+        entry: swift-format
+        language: system
+        types: [swift]
+        args: ['--in-place']
+        require_serial: true
+
+      - id: no-print-statements
+        name: No Print Statements
+        entry: '(print\(|debugPrint\()'
+        language: pygrep
+        types: [swift]
+        files: ^src/
+
+      - id: no-force-unwrap
+        name: No Force Unwrapping
+        entry: '!\s*$'
+        language: pygrep
+        types: [swift]
+        files: ^src/
+        exclude: Tests/
+
+# Global Configuration
+default_language_version:
+  python: python3
+fail_fast: false
