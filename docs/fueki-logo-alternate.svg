@@ -1,0 +1,91 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Alternate version - Light background with dark octopus -->
+  <defs>
+    <linearGradient id="fuekiGradientDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E293B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#334155;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F8FAFC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E2E8F0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Light gradient background -->
+  <rect width="1024" height="1024" fill="url(#bgGradient)" rx="180"/>
+
+  <!-- Dark octopus design -->
+  <g transform="translate(512, 512)">
+
+    <!-- Main body -->
+    <ellipse cx="0" cy="-80" rx="140" ry="160" fill="url(#fuekiGradientDark)"/>
+
+    <!-- Eyes -->
+    <circle cx="-45" cy="-100" r="18" fill="#FFFFFF"/>
+    <circle cx="45" cy="-100" r="18" fill="#FFFFFF"/>
+    <circle cx="-45" cy="-100" r="10" fill="#2563EB"/>
+    <circle cx="45" cy="-100" r="10" fill="#2563EB"/>
+
+    <!-- Tentacles in dark gradient -->
+    <path d="M 0,40 Q 0,180 0,280 Q 0,320 -15,340"
+          fill="none"
+          stroke="url(#fuekiGradientDark)"
+          stroke-width="32"
+          stroke-linecap="round"/>
+
+    <path d="M -30,50 Q -60,160 -80,260 Q -90,300 -110,330"
+          fill="none"
+          stroke="url(#fuekiGradientDark)"
+          stroke-width="30"
+          stroke-linecap="round"/>
+
+    <path d="M 30,50 Q 60,160 80,260 Q 90,300 110,330"
+          fill="none"
+          stroke="url(#fuekiGradientDark)"
+          stroke-width="30"
+          stroke-linecap="round"/>
+
+    <path d="M -80,20 Q -160,100 -220,180 Q -250,210 -280,230"
+          fill="none"
+          stroke="url(#fuekiGradientDark)"
+          stroke-width="28"
+          stroke-linecap="round"/>
+
+    <path d="M 80,20 Q 160,100 220,180 Q 250,210 280,230"
+          fill="none"
+          stroke="url(#fuekiGradientDark)"
+          stroke-width="28"
+          stroke-linecap="round"/>
+
+    <path d="M -100,-20 Q -200,20 -280,80 Q -320,110 -350,140"
+          fill="none"
+          stroke="url(#fuekiGradientDark)"
+          stroke-width="26"
+          stroke-linecap="round"/>
+
+    <path d="M 100,-20 Q 200,20 280,80 Q 320,110 350,140"
+          fill="none"
+          stroke="url(#fuekiGradientDark)"
+          stroke-width="26"
+          stroke-linecap="round"/>
+
+    <path d="M 0,-200 Q 0,-260 0,-300"
+          fill="none"
+          stroke="url(#fuekiGradientDark)"
+          stroke-width="24"
+          stroke-linecap="round"/>
+
+    <!-- Blue accent suction cups -->
+    <g opacity="0.6">
+      <circle cx="-8" cy="140" r="12" fill="#2563EB"/>
+      <circle cx="8" cy="140" r="12" fill="#2563EB"/>
+      <circle cx="-10" cy="200" r="10" fill="#2563EB"/>
+      <circle cx="10" cy="200" r="10" fill="#2563EB"/>
+      <circle cx="-140" cy="80" r="10" fill="#2563EB"/>
+      <circle cx="140" cy="80" r="10" fill="#2563EB"/>
+    </g>
+
+  </g>
+
+</svg>

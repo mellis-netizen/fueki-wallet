@@ -1,0 +1,57 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Simplified version for small sizes (60x60px to 120x120px) -->
+  <defs>
+    <linearGradient id="fuekiGradientSimple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563EB;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Dark background -->
+  <rect width="1024" height="1024" fill="#0F172A" rx="180"/>
+
+  <!-- Simplified octopus - Bold and recognizable -->
+  <g transform="translate(512, 512)">
+
+    <!-- Main body - Larger and simpler -->
+    <circle cx="0" cy="-60" r="160" fill="url(#fuekiGradientSimple)"/>
+
+    <!-- Simple eyes - High contrast -->
+    <circle cx="-50" cy="-80" r="22" fill="#FFFFFF"/>
+    <circle cx="50" cy="-80" r="22" fill="#FFFFFF"/>
+    <circle cx="-50" cy="-80" r="14" fill="#0F172A"/>
+    <circle cx="50" cy="-80" r="14" fill="#0F172A"/>
+
+    <!-- Only 5 visible tentacles for simplicity -->
+
+    <!-- Center tentacle -->
+    <path d="M 0,80 L 0,320"
+          stroke="url(#fuekiGradientSimple)"
+          stroke-width="45"
+          stroke-linecap="round"/>
+
+    <!-- Left tentacles -->
+    <path d="M -40,90 Q -100,200 -150,310"
+          stroke="url(#fuekiGradientSimple)"
+          stroke-width="40"
+          stroke-linecap="round"/>
+
+    <path d="M -100,50 Q -200,140 -280,220"
+          stroke="url(#fuekiGradientSimple)"
+          stroke-width="36"
+          stroke-linecap="round"/>
+
+    <!-- Right tentacles -->
+    <path d="M 40,90 Q 100,200 150,310"
+          stroke="url(#fuekiGradientSimple)"
+          stroke-width="40"
+          stroke-linecap="round"/>
+
+    <path d="M 100,50 Q 200,140 280,220"
+          stroke="url(#fuekiGradientSimple)"
+          stroke-width="36"
+          stroke-linecap="round"/>
+
+  </g>
+
+</svg>

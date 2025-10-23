@@ -1,0 +1,337 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                                                                               ║
+║                        FUEKI WALLET - OCTOPUS LOGO                           ║
+║                     Institutional-Grade Digital Securities                    ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+
+PRIMARY LOGO (Dark Theme - 1024×1024px)
+════════════════════════════════════════════════════════════════════════════════
+
+Background: #0F172A (Deep Slate - Professional Dark)
+
+                                    ┌─────┐
+                                   │  ◠  │  ← Eye highlights (white 80%)
+                            ╭──────┤  ●  ├──────╮
+                           │       │     │       │  ← Head/Body
+                          │    ╭───┴─────┴───╮    │    (Ellipse 140×160px)
+                         │    │   ●     ●   │    │    Gradient: #2563EB → #3B82F6
+                         │    │    ◠   ◠    │    │
+                         │    │   (●) (●)   │    │  ← Eyes (white circles 18px)
+                         │     │           │     │     Pupils (dark 10px)
+                          │     │    ◡    │     │      Expression: Intelligent, trustworthy
+                          │      ╲  ===  ╱      │
+                           │      ╲═════╱      │
+                            ╲       ▼▼▼       ╱
+                             ╲      │││      ╱
+                              ▼▔▔▔▔▔│││▔▔▔▔▔▼
+                             ╱│╲    │││    ╱│╲
+                            ╱ │ ╲   │││   ╱ │ ╲      ← 8 Tentacles
+                           ╱  │  ╲  │││  ╱  │  ╲        (Each 24-32px wide)
+                          │   │   ╲ │││ ╱   │   │       Curved Bézier paths
+                          │  ╱│    ╲│││╱    │╲  │       Flowing organically
+                          │ ╱ │     ▼│▼     │ ╲ │
+                          ▼╱  │    ╱ │ ╲    │  ╲▼
+                          │  ╱│   ╱  │  ╲   │╲  │
+                          │ ╱ │  │   │   │  │ ╲ │
+                          │╱  │  │   │   │  │  ╲│
+                          ●   │  │   │   │  │   ●    ← Suction cups
+                         ╱│  ╱│  │   │   │  │╲  │╲      (8-12px circles)
+                        ╱ │ ╱ │  │   │   │  │ ╲ │ ╲     #3B82F6 at 60% opacity
+                       │  │╱  │  │   │   │  │  ╲│  │
+                       │  ●   │  │   │   │  │   ●  │  ← More suction cups
+                       │ ╱│   │  │   │   │  │   │╲ │
+                       │╱ │   │  │   │   │  │   │ ╲│
+                       ●  │  ╱│  │   │   │  │╲  │  ●
+                      ╱│  │ ╱ │  │   │   │  │ ╲ │  │╲
+                     ╱ │  │╱  │  │   ▼   │  │  ╲│  │ ╲
+                    │  │  ●   │  │   │   │  │   ●  │  │
+                    │  │ ╱│   │  │   │   │  │   │╲ │  │
+                    │  ▼╱ │   │  ▼   │   ▼  │   │ ╲▼  │
+                    │  │  │   │  │   │   │  │   │  │  │
+                    │  │  │   ▼  │   │   │  ▼   │  │  │
+                     ╲ │  │  ╱│  │   │   │  │╲  │  │ ╱
+                      ╲│  │ ╱ │  │   │   │  │ ╲ │  │╱
+                       ╲  │╱  │  │   │   │  │  ╲│  ╱
+                        ╲ ●   │  │   ▼   │  │   ● ╱
+                         ╲│   │  │   │   │  │   │╱
+                          ╲   │  ▼   │   ▼  │   ╱
+                           ╲  │  │   │   │  │  ╱
+                            ╲ │  │   │   │  │ ╱
+                             ╲│  │   │   │  │╱
+                              ▼  │   │   │  ▼
+                                 │   │   │
+                                 ▼   ▼   ▼
+
+
+TENTACLE MAPPING (8 Tentacles = 8 Blockchain Networks)
+════════════════════════════════════════════════════════════════════════════════
+
+                    Back Center
+                    (Tentacle 8)
+                    Optimism
+                        │
+                        │
+        Far Left ───────●───────── Far Right
+      (Tentacle 6)    ╱│╲      (Tentacle 7)
+        Solana       ╱ │ ╲       Arbitrum
+                    ╱  │  ╲
+                   ╱   │   ╲
+                  ╱    │    ╲
+         Left ───●     ●     ●─── Right
+    (Tentacle 4) │    HEAD   │ (Tentacle 5)
+      Polygon    │   (Body)  │   Avalanche
+                 │     │     │
+                 │     │     │
+                 │     │     │
+    Front Left ──●     │     ●── Front Right
+   (Tentacle 2)  │     │     │  (Tentacle 3)
+      Ethereum  ╱     ╱ ╲     ╲    BSC
+               ╱     ╱   ╲     ╲
+              ╱     ╱     ╲     ╲
+             ╱     ╱       ╲     ╲
+            ╱     ╱         ╲     ╲
+           ╱     ╱           ╲     ╲
+          ╱     ╱             ╲     ╲
+         ╱     ╱               ╲     ╲
+        ╱     ╱                 ╲     ╲
+       ╱     │    Center Front   │     ╲
+      ╱      │    (Tentacle 1)   │      ╲
+     ╱       │      Bitcoin       │       ╲
+    ╱        ▼                    ▼        ╲
+
+
+SIMPLIFIED VERSION (60×60px to 120×120px)
+════════════════════════════════════════════════════════════════════════════════
+
+Optimized for small icons with reduced detail:
+
+
+                        ●   ●           ← Larger, bolder eyes
+                       ╱ ◠ ◠ ╲             (22px white circles)
+                      │  ● ●  │            (14px dark pupils)
+                      │   ◡   │         ← Larger body (160px radius)
+                       ╲ ═══ ╱
+                        ╲═══╱
+                         ▼▼▼
+                        ╱│▼│╲           ← Only 5 tentacles visible
+                       ╱ │││ ╲             (45px wide for visibility)
+                      ╱  │││  ╲
+                     │  ╱│││╲  │
+                     │ ╱ │││ ╲ │
+                     │╱  │││  ╲│
+                     ●   │││   ●        ← Simplified suction cups
+                    ╱│  ╱│││╲  │╲
+                   ╱ │ ╱ │││ ╲ │ ╲
+                  │  │╱  │││  ╲│  │
+                  │  ●   │││   ●  │
+                  │ ╱│  ╱│││╲  │╲ │
+                  ▼╱ │ ╱ │││ ╲ │ ╲▼
+                  │  │╱  │││  ╲│  │
+                  │  ●   │││   ●  │
+                  │ ╱│   │││   │╲ │
+                  ▼╱ │   ▼│▼   │ ╲▼
+                     │   │││   │
+                     ▼   ▼▼▼   ▼
+
+
+ALTERNATE VERSION (Light Theme)
+════════════════════════════════════════════════════════════════════════════════
+
+Background: Light gradient (#F8FAFC → #E2E8F0)
+Octopus: Dark slate (#1E293B → #334155)
+Eyes: Blue accent (#2563EB)
+
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+░░░░░░░░░░░░░░░░░░░      ●     ●      ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+░░░░░░░░░░░░░░░░░░     ▓▓▓▓▓▓▓▓▓▓▓     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+░░░░░░░░░░░░░░░░░    ▓▓  ◠   ◠  ▓▓    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+░░░░░░░░░░░░░░░░░   ▓  ▓ ●   ● ▓  ▓   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+░░░░░░░░░░░░░░░░░   ▓   ▓  ◡  ▓   ▓   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+░░░░░░░░░░░░░░░░░░   ▓   ▓▓▓▓▓   ▓   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+░░░░░░░░░░░░░░░░░░░   ▓▓▓▓▓▓▓▓▓▓▓   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+░░░░░░░░░░░░░░░░░░   ▓▓▓▓ ▓ ▓▓▓▓   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+░░░░░░░░░░░░░░░░   ▓▓ ▓ ▓ ▓ ▓ ▓ ▓▓   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+░░░░░░░░░░░░░░   ▓▓  ▓ ▓ ▓ ▓ ▓ ▓  ▓▓   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+       [...dark tentacles extending downward...]
+
+
+COLOR LAYERS (Z-INDEX ORDER)
+════════════════════════════════════════════════════════════════════════════════
+
+Layer 1 (Bottom):   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   Background (#0F172A solid fill)
+
+Layer 2:            ░░░░░░░░░░░░░░░░   Subtle glow (#2563EB at 8% opacity)
+                    ░░░░░░░░░░░░░░░░   (280px radius, gaussian blur 8px)
+                    ░░░░░░░░░░░░░░░░
+
+Layer 3:                  ╱◠──◠╲       Octopus body (gradient fill)
+                         │  ●●  │      #2563EB → #3B82F6
+                         │  ︶   │      Drop shadow (0, 4px, 12px, 30%)
+                          ╲════╱
+
+Layer 4:                 ╱│╲ ╱│╲       Tentacles (gradient stroke)
+                        ╱ │ ▼ │ ╲      24-32px wide, round caps
+                       │  │ │ │  │     Same gradient as body
+
+Layer 5:                  ● ●           Suction cups (#3B82F6 at 60%)
+                         ● ●            8-12px circles
+                        ● ●             Scattered along tentacles
+
+Layer 6 (Top):         ◠   ◠           Eyes & highlights
+                       ●   ●           White circles, dark pupils
+                       •   •           White highlights (top-left)
+
+
+GRADIENT SPECIFICATION
+════════════════════════════════════════════════════════════════════════════════
+
+Linear Gradient (135° angle, top-left to bottom-right):
+
+#2563EB (Start) ████████████████░░░░░░░░░░░░░░░░  #3B82F6 (End)
+     0%         ████████████░░░░░░░░░░░░░░░░░░░░     100%
+                ████████░░░░░░░░░░░░░░░░░░░░░░░░
+                ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+                ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+
+TECHNICAL MEASUREMENTS (1024×1024px Base)
+════════════════════════════════════════════════════════════════════════════════
+
+Canvas:         1024×1024px
+Safe Area:      870×870px (15% padding = 77px on each side)
+
+Body:
+  Shape:        Ellipse
+  Width:        280px (140px radius)
+  Height:       320px (160px radius)
+  Position:     Center X: 512px, Center Y: 432px
+  Fill:         Gradient (#2563EB → #3B82F6)
+  Effect:       Drop shadow (0, 4px, 12px blur, 30% opacity)
+
+Eyes (Left):
+  Outer:        Circle, 18px radius, #FFFFFF at 90% opacity
+  Pupil:        Circle, 10px radius, #0F172A
+  Highlight:    Circle, 4px radius, #FFFFFF at 80% opacity
+  Position:     (-45px from center, -100px from center)
+
+Eyes (Right):
+  Same as left but mirrored at (+45px from center)
+
+Tentacles:
+  Count:        8 total
+  Width:        24-32px (varies by position)
+  Style:        Stroke only, no fill
+  Cap:          Round (stroke-linecap: round)
+  Color:        Same gradient as body
+  Opacity:      0.7-0.95 (varies by layer)
+  Curves:       Quadratic/Cubic Bézier paths
+
+Tentacle 1 (Center Front):
+  Start:        (512, 472) - Bottom of body
+  Control 1:    (512, 592)
+  Control 2:    (512, 712)
+  End:          (497, 852)
+  Width:        32px
+  Opacity:      0.9
+
+Tentacle 2 (Front Left):
+  Start:        (482, 482)
+  Control 1:    (452, 592)
+  Control 2:    (432, 692)
+  End:          (402, 862)
+  Width:        30px
+  Opacity:      0.85
+
+[... Similar specs for tentacles 3-8 ...]
+
+Suction Cups:
+  Size:         8-12px radius (varies)
+  Color:        #3B82F6
+  Opacity:      0.6
+  Placement:    Along tentacle curves at natural intervals
+  Count:        8-12 total (not on every tentacle for cleanliness)
+
+
+BEZIER CURVE EXAMPLES
+════════════════════════════════════════════════════════════════════════════════
+
+Tentacle curves use SVG path syntax with quadratic (Q) or cubic (C) Bézier:
+
+Center Tentacle:
+  M 512,472        (Move to start point - bottom of body)
+  Q 512,592        (Quadratic control point 1)
+    512,712        (Control point 2)
+  Q 512,832        (Another quadratic section)
+    497,852        (End point - slight curve left)
+
+Left Tentacle:
+  M 482,482        (Start)
+  Q 452,592        (Control - curves outward)
+    432,692        (Middle)
+  Q 412,792        (Control - continues curve)
+    402,862        (End - extends left)
+
+The organic, flowing appearance comes from:
+- Multiple control points per tentacle
+- Varying curve strengths
+- Natural tapering (thicker at base, thinner at tips)
+- Asymmetric positioning (not perfectly radial)
+
+
+ICON SCALING STRATEGY
+════════════════════════════════════════════════════════════════════════════════
+
+1024px:  Full detail version (all 8 tentacles, suction cups, shadows)
+512px:   Full detail (minor simplification)
+256px:   Reduced suction cups, simplified shadows
+180px:   Good detail (use full design)
+120px:   Switch to simplified version (5 tentacles, bolder strokes)
+80px:    Simplified version (larger body proportion)
+60px:    Highly simplified (maximum contrast, 5 thick tentacles)
+40px:    Abstract (bold shapes, minimal detail)
+20px:    Icon representation (simple silhouette)
+
+
+EXPORT SETTINGS
+════════════════════════════════════════════════════════════════════════════════
+
+SVG Source → PNG Export:
+  - Color Mode: RGB (not CMYK)
+  - Color Space: sRGB IEC61966-2.1
+  - Bit Depth: 24-bit (8 bits per channel)
+  - Alpha Channel: YES (except 1024px App Store icon)
+  - Resolution: 72 DPI minimum (144 DPI better)
+  - Compression: PNG optimization (lossless)
+  - Anti-aliasing: Enabled (smooth edges)
+  - Background: Embedded (#0F172A) or transparent
+
+App Store Icon (1024px) ONLY:
+  - Must flatten alpha channel (fully opaque)
+  - Use background color #0F172A as fill
+  - No transparency whatsoever
+
+
+DESIGN PHILOSOPHY
+════════════════════════════════════════════════════════════════════════════════
+
+"A sophisticated geometric octopus that balances organic fluidity
+ with crisp professionalism - representing the intersection of
+ biological intelligence and digital precision in crypto asset management."
+
+Key Principles:
+  1. Geometric yet organic (structured curves, not random)
+  2. Professional not playful (institutional-grade, not cartoon)
+  3. Recognizable at all sizes (strong silhouette)
+  4. High contrast (accessible, visible)
+  5. Brand-aligned colors (Fueki blue gradient)
+  6. Meaningful symbolism (8 tentacles = multi-chain)
+  7. Scalable design (SVG source, easy modifications)
+  8. Platform-appropriate (iOS guidelines compliant)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                              END OF DESIGN SPEC
+═══════════════════════════════════════════════════════════════════════════════
